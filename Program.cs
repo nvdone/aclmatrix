@@ -37,11 +37,28 @@ namespace aclmatrix
 
 			if (args.Length < 2)
 			{
-				Console.Out.WriteLine("\r\nUsage: ACLMatrix.exe root_path output_file.xlsx [ShowAccountNames]");
+				Console.Out.WriteLine("\r\nUsage: ACLMatrix.exe root_path output_file.xlsx [ShowAccountNames] [BypassACL]");
 				return;
 			}
 
-			bool addAccountNames = (args.Length == 3) && args[2].Equals("showaccountnames", StringComparison.InvariantCultureIgnoreCase);
+			bool addAccountNames = false;
+			bool bypassACL = false;
+
+			for(int i = 2; i < args.Length; i++)
+			{
+				if (args[i].Equals("showaccountnames", StringComparison.InvariantCultureIgnoreCase))
+					addAccountNames = true;
+				if (args[i].Equals("bypassacl", StringComparison.InvariantCultureIgnoreCase))
+					bypassACL = true;
+			}
+
+			if (bypassACL)
+			{
+				if(TokenPrivileges.SetBackupPrivilege())
+					Console.Out.WriteLine("\r\nBypassACL: SUCCESS");
+				else
+					Console.Out.WriteLine("\r\nBypassACL: FAILURE");
+			}
 
 			groupsCache = new GroupsCache();
 			usersCache = new UsersCache();
