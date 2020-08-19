@@ -9,6 +9,7 @@ namespace aclmatrix
 		const UInt32 TOKEN_QUERY = 0x0008;
 		const UInt32 TOKEN_ADJUST_PRIVILEGES = 0x0020;
 		const UInt32 SE_PRIVILEGE_ENABLED = 0x00000002;
+		const UInt32 ERROR_SUCCESS = 0x0;
 
 		[StructLayout(LayoutKind.Sequential)]
 		struct LUID
@@ -42,7 +43,10 @@ namespace aclmatrix
 		[DllImport("kernel32.dll", SetLastError = true)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		static extern bool CloseHandle(IntPtr hObject);
-		
+
+		[DllImport("kernel32.dll")]
+		static extern UInt32 GetLastError();
+
 		#endregion
 
 		public static bool SetBackupPrivilege()
@@ -66,6 +70,12 @@ namespace aclmatrix
 			tp.Attributes = SE_PRIVILEGE_ENABLED;
 
 			if (!AdjustTokenPrivileges(tokenHandle, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero))
+			{
+				CloseHandle(tokenHandle);
+				return false;
+			}
+
+			if(GetLastError() != ERROR_SUCCESS)
 			{
 				CloseHandle(tokenHandle);
 				return false;
