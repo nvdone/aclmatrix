@@ -31,18 +31,21 @@ namespace aclmatrix
 		private static PrincipalContext domainPrincipalContext;
 		private static PrincipalContext machinePrincipalContext;
 
+		private static bool checkFiles;
+
 		public static void Main(string[] args)
 		{
 			Console.Out.WriteLine(string.Format("{0} {1}\r\n{2}", ((AssemblyTitleAttribute)Attribute.GetCustomAttribute(System.Reflection.Assembly.GetExecutingAssembly(), typeof(AssemblyTitleAttribute))).Title, Assembly.GetExecutingAssembly().GetName().Version, ((AssemblyCopyrightAttribute)Attribute.GetCustomAttribute(System.Reflection.Assembly.GetExecutingAssembly(), typeof(AssemblyCopyrightAttribute))).Copyright));
 
 			if (args.Length < 2)
 			{
-				Console.Out.WriteLine("\r\nUsage: ACLMatrix.exe root_path output_file.xlsx [ShowAccountNames] [BypassACL]");
+				Console.Out.WriteLine("\r\nUsage: ACLMatrix.exe root_path output_file.xlsx [ShowAccountNames] [BypassACL] [CheckFiles]");
 				return;
 			}
 
 			bool addAccountNames = false;
 			bool bypassACL = false;
+			checkFiles = false;
 
 			for(int i = 2; i < args.Length; i++)
 			{
@@ -50,6 +53,8 @@ namespace aclmatrix
 					addAccountNames = true;
 				if (args[i].Equals("bypassacl", StringComparison.InvariantCultureIgnoreCase))
 					bypassACL = true;
+				if (args[i].Equals("checkfiles", StringComparison.InvariantCultureIgnoreCase))
+					checkFiles = true;
 			}
 
 			if (bypassACL)
@@ -197,11 +202,28 @@ namespace aclmatrix
 
 		static void getTreeAcl(List<PathACL> acl, string path, PathACL parentACL)
 		{
-			PathACL pathACL = getPathACL(path);
+			PathACL pathACL = getPathACL(path, false);
 
 			if ((pathACL != null) && (parentACL == null || !pathACL.Equals(parentACL)))
 			{
 				acl.Add(pathACL);
+			}
+
+			if (checkFiles)
+			{
+				try
+				{
+					foreach (string filePath in Directory.GetFiles(path))
+					{
+						PathACL fileACL = getPathACL(filePath, true);
+
+						if (fileACL != null && !fileACL.Equals(pathACL))
+						{
+							acl.Add(fileACL);
+						}
+					}
+				}
+				catch { }
 			}
 
 			try
@@ -214,14 +236,14 @@ namespace aclmatrix
 			catch { }
 		}
 
-		private static PathACL getPathACL(string path)
+		private static PathACL getPathACL(string path, bool isFile)
 		{
 			To(path);
 			PathACL pathACL = new PathACL(path);
 
 			try
 			{
-				AuthorizationRuleCollection arc = new DirectorySecurity(path, AccessControlSections.Access).GetAccessRules(true, true, typeof(NTAccount));
+				AuthorizationRuleCollection arc = (isFile ? new FileSecurity(path, AccessControlSections.Access).GetAccessRules(true, true, typeof(NTAccount))  : new DirectorySecurity(path, AccessControlSections.Access).GetAccessRules(true, true, typeof(NTAccount)));
 
 				foreach (FileSystemAccessRule ar in arc)
 				{

@@ -26,7 +26,7 @@ namespace aclmatrix
 
 		public bool Equals(AccessRights other)
 		{
-			return Allow == other.Allow && Deny == other.Deny;
+			return (Allow & FileSystemRights.FullControl) == (other.Allow & FileSystemRights.FullControl) && (Deny & FileSystemRights.FullControl) == (other.Deny & FileSystemRights.FullControl);
 		}
 
 		public override string ToString()
