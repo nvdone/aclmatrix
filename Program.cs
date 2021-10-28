@@ -1,5 +1,5 @@
 ﻿//NVD ACLMatrix
-//Copyright © 2016-2019, Nikolay Dudkin
+//Copyright © 2016-2021, Nikolay Dudkin
 
 //This program is free software: you can redistribute it and/or modify
 //it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ namespace aclmatrix
 	class Program
 	{
 		private static GroupsCache groupsCache;
-		private static UsersCache usersCache;
+		private static SubjectsCache subjectsCache;
 
 		private static PrincipalContext domainPrincipalContext;
 		private static PrincipalContext machinePrincipalContext;
@@ -39,16 +39,25 @@ namespace aclmatrix
 
 			if (args.Length < 2)
 			{
-				Console.Out.WriteLine("\r\nUsage: ACLMatrix.exe root_path output_file.xlsx [ShowAccountNames] [BypassACL] [CheckFiles]");
+				Console.Out.WriteLine("\r\nUsage: ACLMatrix.exe root_path output_file.xlsx [HideUsers] [HideGroups] [HideUnrecognized] [ShowAccountNames] [BypassACL] [CheckFiles]");
 				return;
 			}
 
+			bool hideUsers = false;
+			bool hideGroups = false;
+			bool hideUnrecognized = false;
 			bool addAccountNames = false;
 			bool bypassACL = false;
 			checkFiles = false;
 
 			for(int i = 2; i < args.Length; i++)
 			{
+				if (args[i].Equals("hideusers", StringComparison.InvariantCultureIgnoreCase))
+					hideUsers = true;
+				if (args[i].Equals("hidegroups", StringComparison.InvariantCultureIgnoreCase))
+					hideGroups = true;
+				if (args[i].Equals("hideunrecognized", StringComparison.InvariantCultureIgnoreCase))
+					hideUnrecognized = true;
 				if (args[i].Equals("showaccountnames", StringComparison.InvariantCultureIgnoreCase))
 					addAccountNames = true;
 				if (args[i].Equals("bypassacl", StringComparison.InvariantCultureIgnoreCase))
@@ -66,13 +75,13 @@ namespace aclmatrix
 			}
 
 			groupsCache = new GroupsCache();
-			usersCache = new UsersCache();
+			subjectsCache = new SubjectsCache();
 
 			Console.Out.WriteLine();
 
-			ToHere();
-			To("Evaluating: ");
-			ToHere();
+			toHere();
+			to("Evaluating: ");
+			toHere();
 
 			List<PathACL> acls = new List<PathACL>();
 
@@ -105,39 +114,56 @@ namespace aclmatrix
 				return;
 			}
 
-			List<User> users = new List<User>();
+			List<Subject> subjects = new List<Subject>();
 
 			foreach (PathACL pathACL in acls)
 			{
-				List<User> pathUsers = pathACL.AllUsers;
+				List<Subject> pathSubjects = pathACL.AllSubjects;
 
-				foreach (User user in pathUsers)
+				foreach (Subject subject in pathSubjects)
 				{
-					if (!users.Contains(user))
-						users.Add(user);
+					if (!subjects.Contains(subject))
+					{
+						switch (subject.PrincipalType)
+						{
+							case 'G':
+								if(!hideGroups)
+									subjects.Add(subject);
+								break;
+							case 'U':
+								if(!hideUsers)
+									subjects.Add(subject);
+								break;
+							default:
+								if (!hideUnrecognized)
+									subjects.Add(subject);
+								break;
+						}
+					}
+						
 				}
 			}
 
-			users.Sort();
+			subjects.Sort();
 
-			To("done.");
+			to("done.");
 
 			Console.Out.WriteLine();
 
-			ToHere();
-			To("Exporting: ");
-			ToHere();
-			To("0%");
+			toHere();
+			to("Exporting: ");
+			toHere();
+			to("0%");
 
-			if (users.Count > 50000)
+			if (subjects.Count > 50000)
 			{
-				To("Error: too many users!");
+				to("Error: too many users!");
 				return;
 			}
 
 			if (acls.Count > 1000000)
 			{
-				To("Error: too many folders!");
+				to("Error: too many folders!");
 				return;
 			}
 
@@ -153,9 +179,9 @@ namespace aclmatrix
 				ws.Cells[i + 2, 1].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightSteelBlue);
 			}
 
-			for (int j = 0; j < users.Count; j++)
+			for (int j = 0; j < subjects.Count; j++)
 			{
-				ws.Cells[1, j + 2].Value = users[j].DisplayName + (addAccountNames ? " (" + users[j].AccountName + ")" : "");
+				ws.Cells[1, j + 2].Value = subjects[j].PrincipalType + ": " + subjects[j].DisplayName + (addAccountNames ? " (" + subjects[j].AccountName + ")" : "");
 				ws.Cells[1, j + 2].Style.TextRotation = 90;
 				ws.Cells[1, j + 2].Style.Border.BorderAround(OfficeOpenXml.Style.ExcelBorderStyle.Thin);
 				ws.Cells[1, j + 2].Style.Font.Bold = true;
@@ -166,9 +192,9 @@ namespace aclmatrix
 
 			for (int i = 0; i < acls.Count; i++)
 			{
-				for (int j = 0; j < users.Count; j++)
+				for (int j = 0; j < subjects.Count; j++)
 				{
-					AccessRights ar = acls[i][users[j]];
+					AccessRights ar = acls[i][subjects[j]];
 
 					if (ar != null)
 					{
@@ -184,7 +210,7 @@ namespace aclmatrix
 
 					ws.Cells[i + 2, j + 2].Style.Border.BorderAround(OfficeOpenXml.Style.ExcelBorderStyle.Thin);
 
-					To(string.Format("{0}%", (int)(((double)(i * users.Count + j)) / ((double)(acls.Count * users.Count)) * 100.0)));
+					to(string.Format("{0}%", (int)(((double)(i * subjects.Count + j)) / ((double)(acls.Count * subjects.Count)) * 100.0)));
 				}
 			}
 
@@ -197,7 +223,7 @@ namespace aclmatrix
 				excelPackage.SaveAs(fs);
 			}
 
-			To("done.");
+			to("done.");
 		}
 
 		static void getTreeAcl(List<PathACL> acl, string path, PathACL parentACL)
@@ -238,12 +264,12 @@ namespace aclmatrix
 
 		private static PathACL getPathACL(string path, bool isFile)
 		{
-			To(path);
+			to(path);
 			PathACL pathACL = new PathACL(path);
 
 			try
 			{
-				AuthorizationRuleCollection arc = (isFile ? new FileSecurity(path, AccessControlSections.Access).GetAccessRules(true, true, typeof(NTAccount))  : new DirectorySecurity(path, AccessControlSections.Access).GetAccessRules(true, true, typeof(NTAccount)));
+				AuthorizationRuleCollection arc = (isFile ? new FileSecurity(path, AccessControlSections.Access).GetAccessRules(true, true, typeof(NTAccount)) : new DirectorySecurity(path, AccessControlSections.Access).GetAccessRules(true, true, typeof(NTAccount)));
 
 				foreach (FileSystemAccessRule ar in arc)
 				{
@@ -257,35 +283,57 @@ namespace aclmatrix
 
 		private static void addPrincipalACL(PathACL pathACL, FileSystemAccessRule ar)
 		{
-			User user = usersCache[ar.IdentityReference.Value];
+			Subject subject = subjectsCache[ar.IdentityReference.Value];
 
-			if (user != null)
+			if(subject == null)
 			{
-				pathACL.AddEntry(user, ar.AccessControlType, ar.FileSystemRights);
-			}
-			else
-			{
-				Principal principal = Principal.FindByIdentity(ar.IdentityReference.Value.StartsWith("BUILTIN\\") ? machinePrincipalContext : domainPrincipalContext, ar.IdentityReference.Value);
+				Principal principal = null;
+
+				try
+				{
+					principal = Principal.FindByIdentity(ar.IdentityReference.Value.StartsWith("BUILTIN\\") ? machinePrincipalContext : domainPrincipalContext, ar.IdentityReference.Value);
+				}
+				catch { }
+
+				if (principal == null && machinePrincipalContext != domainPrincipalContext)
+				{
+					try
+					{
+						principal = Principal.FindByIdentity(machinePrincipalContext, ar.IdentityReference.Value);
+					}
+					catch { }
+				}
 
 				if (principal == null)
 				{
-					pathACL.AddEntry(new User(ar.IdentityReference.Value), ar.AccessControlType, ar.FileSystemRights);
+					subject = new Subject(ar.IdentityReference.Value);
 				}
 				else
 				{
 					if (principal is UserPrincipal)
 					{
-						user = new User(principal as UserPrincipal);
-						usersCache.Add(ar.IdentityReference.Value, user);
-						pathACL.AddEntry(user, ar.AccessControlType, ar.FileSystemRights);
+						subject = new Subject(principal as UserPrincipal);
 					}
 
 					if (principal is GroupPrincipal)
-						groupsCache[principal as GroupPrincipal].ForEach(u =>
-						{
-							pathACL.AddEntry(u, ar.AccessControlType, ar.FileSystemRights);
-						});
+					{
+						subject = new Subject(principal as GroupPrincipal);
+					}
 				}
+			}
+
+			if (subject.PrincipalType == 'G')
+			{
+				groupsCache[subject.SubjectPrincipal as GroupPrincipal].ForEach(u =>
+				{
+					subjectsCache.Add(ar.IdentityReference.Value, subject);
+					pathACL.AddEntry(u, ar.AccessControlType, ar.FileSystemRights);
+				});
+			}
+			else
+			{
+				subjectsCache.Add(ar.IdentityReference.Value, subject);
+				pathACL.AddEntry(subject, ar.AccessControlType, ar.FileSystemRights);
 			}
 		}
 
@@ -293,14 +341,14 @@ namespace aclmatrix
 		private static int console_row = 0;
 		private static int console_col = 0;
 
-		private static void ToHere()
+		private static void toHere()
 		{
 			console_len = 0;
 			console_row = Console.CursorTop;
 			console_col = Console.CursorLeft;
 		}
 
-		private static void To(string str)
+		private static void to(string str)
 		{
 			Console.SetCursorPosition(console_col, console_row);
 			Console.Out.Write(str);

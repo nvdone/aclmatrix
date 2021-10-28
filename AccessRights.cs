@@ -1,5 +1,5 @@
 ﻿//NVD ACLMatrix
-//Copyright © 2016-2019, Nikolay Dudkin
+//Copyright © 2016-2021, Nikolay Dudkin
 
 //This program is free software: you can redistribute it and/or modify
 //it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@ namespace aclmatrix
 {
 	class AccessRights : IEquatable<AccessRights>
 	{
-		public FileSystemRights Allow;
-		public FileSystemRights Deny;
+		public FileSystemRights Allow { get; set; }
+		public FileSystemRights Deny { get; set; }
 
 		public bool Equals(AccessRights other)
 		{
@@ -142,6 +142,14 @@ namespace aclmatrix
 					return Color.LightSteelBlue;
 
 				return Color.White;
+			}
+		}
+
+		public bool Substantial
+		{
+			get
+			{
+				return ((Allow | Deny) & FileSystemRights.FullControl) != 0;
 			}
 		}
 	}

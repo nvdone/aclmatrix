@@ -1,5 +1,5 @@
 ﻿//NVD ACLMatrix
-//Copyright © 2016-2019, Nikolay Dudkin
+//Copyright © 2016-2021, Nikolay Dudkin
 
 //This program is free software: you can redistribute it and/or modify
 //it under the terms of the GNU General Public License as published by
@@ -16,11 +16,11 @@ using System.Collections.Generic;
 
 namespace aclmatrix
 {
-	class UsersCache
+	class SubjectsCache
 	{
-		private Dictionary<string, User> cache = new Dictionary<string, User>();
+		private readonly Dictionary<string, Subject> cache = new Dictionary<string, Subject>();
 
-		public User this[string identity]
+		public Subject this[string identity]
 		{
 			get
 			{
@@ -31,10 +31,10 @@ namespace aclmatrix
 			}
 		}
 
-		public void Add(string identity, User user)
+		public void Add(string identity, Subject subject)
 		{
 			if (!cache.ContainsKey(identity.ToLower()))
-				cache.Add(identity.ToLower(), user);
+				cache.Add(identity.ToLower(), subject);
 		}
 	}
 }

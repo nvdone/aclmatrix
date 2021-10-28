@@ -10,8 +10,8 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Nikolay Dudkin")]
 [assembly: AssemblyProduct("NVD ACLMatrix")]
-[assembly: AssemblyCopyright("Copyright (C) 2016-2020, Nikolay Dudkin")]
-[assembly: AssemblyTrademark("Copyright (C) 2016-2020, Nikolay Dudkin")]
+[assembly: AssemblyCopyright("Copyright (C) 2016-2021, Nikolay Dudkin")]
+[assembly: AssemblyTrademark("Copyright (C) 2016-2021, Nikolay Dudkin")]
 [assembly: AssemblyCulture("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("2.1.*")]
+[assembly: AssemblyVersion("2.2.*")]
 //[assembly: AssemblyFileVersion("1.0.0.0")]

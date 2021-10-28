@@ -1,5 +1,5 @@
 ﻿//NVD ACLMatrix
-//Copyright © 2016-2019, Nikolay Dudkin
+//Copyright © 2016-2021, Nikolay Dudkin
 
 //This program is free software: you can redistribute it and/or modify
 //it under the terms of the GNU General Public License as published by
@@ -21,71 +21,73 @@ namespace aclmatrix
 {
 	class PathACL : IEquatable<PathACL>
 	{
-		private Dictionary<User, AccessRights> userRights = null;
+		private readonly Dictionary<Subject, AccessRights> subjectRights = null;
 
 		public string Path { get; }
 
 		public PathACL(string path)
 		{
-			userRights = new Dictionary<User, AccessRights>(new User());
+			subjectRights = new Dictionary<Subject, AccessRights>(new Subject());
 			Path = path;
 		}
 
-		public void AddEntry(User user, AccessControlType act, FileSystemRights fsr)
+		public void AddEntry(Subject subject, AccessControlType act, FileSystemRights fsr)
 		{
-			if (!userRights.ContainsKey(user))
+			if (!subjectRights.ContainsKey(subject))
 			{
-				AccessRights ac;
+				AccessRights ar;
 
 				if (act == AccessControlType.Allow)
-					ac = new AccessRights { Allow = fsr };
+					ar = new AccessRights { Allow = fsr };
 				else
-					ac = new AccessRights { Deny = fsr };
+					ar = new AccessRights { Deny = fsr };
 
-				userRights.Add(user, ac);
+				subjectRights.Add(subject, ar);
 			}
 			else
 			{
-				AccessRights ac = userRights[user];
+				AccessRights ar = subjectRights[subject];
 
 				if (act == AccessControlType.Allow)
-					ac.Allow |= fsr;
+					ar.Allow |= fsr;
 				else
-					ac.Deny |= fsr;
+					ar.Deny |= fsr;
 			}
 		}
 
-		public List<User> AllUsers
+		public List<Subject> AllSubjects
 		{
 			get
 			{
-				return userRights.Keys.ToList<User>();
+				return subjectRights.Keys.ToList();
 			}
 		}
 
-		public AccessRights this[User user]
+		public AccessRights this[Subject subject]
 		{
 			get
 			{
-				if (!userRights.ContainsKey(user))
+				if (!subjectRights.ContainsKey(subject))
 					return null;
 
 				return
-					userRights[user];
+					subjectRights[subject];
 			}
 		}
 
 		public bool Equals(PathACL other)
 		{
-			if (userRights.Count != other.userRights.Count)
+			Dictionary<Subject, AccessRights> mySubstantialRights = subjectRights.Where(i => i.Value.Substantial).ToDictionary(j => j.Key, j => j.Value, new Subject());
+			Dictionary<Subject, AccessRights> otherSubstantialRights = other.subjectRights.Where(k => k.Value.Substantial).ToDictionary(l => l.Key, l => l.Value, new Subject());
+
+			if (mySubstantialRights.Count() != otherSubstantialRights.Count())
 				return false;
 
-			foreach (User user in userRights.Keys)
+			foreach (Subject subject in mySubstantialRights.Keys)
 			{
-				if (!other.userRights.ContainsKey(user))
+				if (!otherSubstantialRights.ContainsKey(subject))
 					return false;
-
-				if (!userRights[user].Equals(other.userRights[user]))
+				if (!mySubstantialRights[subject].Equals(other.subjectRights[subject]))
 					return false;
 			}
 

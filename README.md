@@ -3,7 +3,7 @@ Small utility to analyse folder tree permissions and display them as a matrix in
 \
 ![Sample](Manual/sample.png)\
 \
-Usage: ACLMatrix.exe root_path output_file.xlsx [ShowAccountNames] [BypassACL] [CheckFiles]\
+Usage: ACLMatrix.exe root_path output_file.xlsx [HideUsers] [HideGroups] [HideUnrecognized] [ShowAccountNames] [BypassACL] [CheckFiles]\
 \
 Caveats:
 1. You may use CheckFiles option to investigate permissions on a file granularity level, but keep in mind, that the file count is limited by a maximum number of rows in Microsoft Excel.

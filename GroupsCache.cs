@@ -1,5 +1,5 @@
 ﻿//NVD ACLMatrix
-//Copyright © 2016-2019, Nikolay Dudkin
+//Copyright © 2016-2021, Nikolay Dudkin
 
 //This program is free software: you can redistribute it and/or modify
 //it under the terms of the GNU General Public License as published by
@@ -21,9 +21,9 @@ namespace aclmatrix
 {
 	class GroupsCache
 	{
-		private Dictionary<string, List<User>> cache = new Dictionary<string, List<User>>();
+		private readonly Dictionary<string, List<Subject>> cache = new Dictionary<string, List<Subject>>();
 
-		public List<User> this[GroupPrincipal groupPrincipal]
+		public List<Subject> this[GroupPrincipal groupPrincipal]
 		{
 			get
 			{
@@ -36,7 +36,10 @@ namespace aclmatrix
 				if (cache.ContainsKey(key))
 					return cache[key];
 
-				List<User> users = new List<User>();
+				List<Subject> subjects = new List<Subject>
+				{
+					new Subject(groupPrincipal)
+				};
 
 				PrincipalSearchResult<Principal> members = null;
 
@@ -57,45 +60,37 @@ namespace aclmatrix
 
 				if (members == null)
 				{
-					return users;
+					return subjects;
 				}
 
-				try
+				foreach (Principal principal in members)
 				{
-					foreach (Principal principal in members)
+					try
 					{
-						try
+						if (principal is UserPrincipal)
 						{
-							if (principal is UserPrincipal)
-							{
-								User user = new User(principal as UserPrincipal);
-								if (!users.Contains(user))
-									users.Add(user);
-							}
+							Subject subject = new Subject(principal);
+							if (!subjects.Contains(subject))
+								subjects.Add(subject);
 						}
-						catch { }
 
 						if (principal is GroupPrincipal)
 						{
-							try
+							List<Subject> subMembers = this[principal as GroupPrincipal];
+							foreach (Subject subMember in subMembers)
 							{
-								List<User> subUsers = this[principal as GroupPrincipal];
-								foreach (User subUser in subUsers)
-								{
-									if (!users.Contains(subUser))
-										users.Add(subUser);
-								}
+								if (!subjects.Contains(subMember))
+									subjects.Add(subMember);
 							}
-							catch { }
 						}
 					}
+					catch { }
 				}
-				catch { }
 
 				if (!cache.ContainsKey(key))
-					cache.Add(key, users);
+					cache.Add(key, subjects);
 
-				return users;
+				return subjects;
 			}
 		}
 	}
