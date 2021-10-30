@@ -21,15 +21,7 @@ namespace aclmatrix
 {
 	class PathACL : IEquatable<PathACL>
 	{
-		private static Subject dummy;
-
-		private static Subject Dummy
-		{
-			get
-			{
-				return dummy ?? (dummy = new Subject());
-			}
-		}
+		private static readonly Subject dummy = new Subject();
 
 		private readonly Dictionary<Subject, AccessRights> subjectRights = null;
 
@@ -37,7 +29,7 @@ namespace aclmatrix
 
 		public PathACL(string path)
 		{
-			subjectRights = new Dictionary<Subject, AccessRights>(Dummy);
+			subjectRights = new Dictionary<Subject, AccessRights>(dummy);
 			Path = path;
 		}
 
@@ -87,8 +79,8 @@ namespace aclmatrix
 
 		public bool Equals(PathACL other)
 		{
-			Dictionary<Subject, AccessRights> mySubstantialRights = subjectRights.Where(i => i.Value.Substantial).ToDictionary(j => j.Key, j => j.Value, Dummy);
-			Dictionary<Subject, AccessRights> otherSubstantialRights = other.subjectRights.Where(k => k.Value.Substantial).ToDictionary(l => l.Key, l => l.Value, Dummy);
+			Dictionary<Subject, AccessRights> mySubstantialRights = subjectRights.Where(i => i.Value.Substantial).ToDictionary(j => j.Key, j => j.Value, dummy);
+			Dictionary<Subject, AccessRights> otherSubstantialRights = other.subjectRights.Where(k => k.Value.Substantial).ToDictionary(l => l.Key, l => l.Value, dummy);
 
 			if (mySubstantialRights.Count() != otherSubstantialRights.Count())
 				return false;
